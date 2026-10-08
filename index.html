@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>GSCS Money Manager</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="GSCS Money Manager" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
+  <link rel="shortcut icon" href="./apple-touch-icon.png" />
+  
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            iosgreen: '#34c759',
+            iosblue: '#007aff',
+            iospink: '#ff2d55',
+            iosorange: '#ff9500',
+            iosindigo: '#5856d6',
+            darkbg: '#000000',
+            darkcard: '#1c1c1e',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- jsPDF & html2canvas for PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-slate-100 dark:bg-black text-slate-900 dark:text-white min-h-screen pb-28 antialiased transition-colors duration-300">
+
+  <!-- iOS Dynamic Island Toast -->
+  <div id="iosDynamicIsland" class="ios-dynamic-island flex items-center gap-2.5">
+    <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+      <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+    </div>
+    <span id="dynamicIslandText" class="text-xs font-semibold tracking-tight">Synced to Google Drive</span>
+  </div>
+
+  <!-- PIN Lock Overlay (iOS Style Keypad) -->
+  <div id="pinLockScreen" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 hidden">
+    <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-3xl flex items-center justify-center mb-4 border border-emerald-500/30">
+      <i data-lucide="lock" class="w-8 h-8"></i>
+    </div>
+    <h2 class="text-xl font-extrabold text-white mb-1 tracking-tight" data-i18n="appTitle">GSCS Money Manager</h2>
+    <p class="text-slate-400 text-xs font-medium mb-8" id="pinLockTitle">Enter Passcode</p>
+    
+    <!-- PIN Dots -->
+    <div class="flex gap-4 mb-10">
+      <div class="pin-digit" id="pinDot0"></div>
+      <div class="pin-digit" id="pinDot1"></div>
+      <div class="pin-digit" id="pinDot2"></div>
+      <div class="pin-digit" id="pinDot3"></div>
+    </div>
+
+    <!-- Numeric Keypad -->
+    <div class="grid grid-cols-3 gap-5 w-full max-w-xs text-center">
+      <button onclick="app.enterPin('1')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">1</button>
+      <button onclick="app.enterPin('2')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">2</button>
+      <button onclick="app.enterPin('3')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">3</button>
+      <button onclick="app.enterPin('4')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">4</button>
+      <button onclick="app.enterPin('5')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">5</button>
+      <button onclick="app.enterPin('6')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">6</button>
+      <button onclick="app.enterPin('7')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">7</button>
+      <button onclick="app.enterPin('8')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">8</button>
+      <button onclick="app.enterPin('9')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">9</button>
+      <button onclick="app.clearPin()" class="h-16 rounded-full bg-zinc-900/40 text-slate-400 text-xs font-semibold flex items-center justify-center ios-touch">Clear</button>
+      <button onclick="app.enterPin('0')" class="h-16 rounded-full bg-zinc-900 text-white text-2xl font-medium ios-touch shadow-md">0</button>
+      <button onclick="app.deletePin()" class="h-16 rounded-full bg-zinc-900/40 text-slate-400 text-xs font-semibold flex items-center justify-center ios-touch">
+        <i data-lucide="delete" class="w-6 h-6"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- iOS Header Bar -->
+  <header class="sticky top-0 z-30 ios-glass-header px-4 py-3.5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 border border-white/20">
+        <i data-lucide="wallet" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base leading-tight tracking-tight text-slate-900 dark:text-white">GSCS Money Manager</h1>
+        <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1" id="headerSubtext">
+          <i data-lucide="shield-check" class="w-3 h-3 text-emerald-500"></i>
+          <span>ගලපිටියාගම සණස බැංකුව</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Language Selector -->
+      <select id="langSelect" onchange="app.changeLanguage(this.value)" class="text-xs font-bold px-2 py-1.5 rounded-xl bg-slate-200/80 dark:bg-zinc-800 border-none outline-none text-slate-800 dark:text-slate-200 cursor-pointer">
+        <option value="en">🇬🇧 EN</option>
+        <option value="si">🇱🇰 SI</option>
+      </select>
+
+      <!-- Currency Selector -->
+      <select id="currencySelect" onchange="app.changeCurrency(this.value)" class="text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-200/80 dark:bg-zinc-800 border-none outline-none text-slate-800 dark:text-slate-200 cursor-pointer">
+        <option value="LKR">LKR (Rs.)</option>
+        <option value="USD">USD ($)</option>
+        <option value="EUR">EUR (€)</option>
+        <option value="GBP">GBP (£)</option>
+        <option value="INR">INR (₹)</option>
+      </select>
+
+      <!-- Theme Toggle -->
+      <button onclick="app.toggleTheme()" class="w-9 h-9 rounded-xl bg-slate-200/80 dark:bg-zinc-800 flex items-center justify-center text-slate-700 dark:text-slate-200 ios-touch">
+        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+      </button>
+
+      <!-- Google Profile & Login Button -->
+      <div id="googleAuthContainer" class="relative">
+        <button id="authBtn" onclick="app.openGmailModal()" class="w-9 h-9 rounded-xl bg-slate-200/80 dark:bg-zinc-800 flex items-center justify-center text-slate-700 dark:text-slate-200 ios-touch overflow-hidden border border-slate-300 dark:border-zinc-700">
+          <i data-lucide="user" class="w-4 h-4" id="authBtnIcon"></i>
+          <div id="userAvatarBadge" class="w-full h-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center hidden">G</div>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="max-w-md mx-auto px-4 pt-4 space-y-5 overflow-x-hidden">
+
+    <!-- VIEW 1: DASHBOARD -->
+    <section id="viewDashboard" class="view-section space-y-5">
+
+      <!-- Apple Card Balance Mesh -->
+      <div class="relative overflow-hidden rounded-[30px] apple-card-gradient text-white p-6 shadow-2xl">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+        
+        <div class="flex items-center justify-between text-emerald-100 text-xs font-semibold mb-1">
+          <span data-i18n="totalBalance">TOTAL BALANCE</span>
+          <select id="dashboardMonthSelect" onchange="app.changeDashboardMonth(this.value)" class="px-2.5 py-1 rounded-full bg-white/20 text-white text-[11px] font-bold backdrop-blur-md border-none outline-none cursor-pointer">
+            <!-- Dynamically populated month options -->
+          </select>
+        </div>
+
+        <div class="text-3xl font-black tracking-tight mb-5" id="totalBalanceDisplay">Rs. 0.00</div>
+
+        <!-- Income & Expense Summary Pill -->
+        <div class="grid grid-cols-2 gap-3 pt-3.5 border-t border-white/20">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white">
+              <i data-lucide="arrow-down-left" class="w-4 h-4 text-emerald-200"></i>
+            </div>
+            <div>
+              <p class="text-[10px] text-emerald-100 font-bold uppercase tracking-wider" data-i18n="income">Income</p>
+              <p class="text-sm font-extrabold" id="totalIncomeDisplay">Rs. 0.00</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white">
+              <i data-lucide="arrow-up-right" class="w-4 h-4 text-rose-200"></i>
+            </div>
+            <div>
+              <p class="text-[10px] text-emerald-100 font-bold uppercase tracking-wider" data-i18n="expense">Expense</p>
+              <p class="text-sm font-extrabold" id="totalExpenseDisplay">Rs. 0.00</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- iOS Action Pills -->
+      <div class="grid grid-cols-4 gap-2">
+        <button onclick="app.openAddTransactionModal('expense')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 ios-touch">
+          <div class="w-9 h-9 rounded-2xl bg-rose-500 text-white flex items-center justify-center mb-1 shadow-md shadow-rose-500/30">
+            <i data-lucide="minus-circle" class="w-4.5 h-4.5"></i>
+          </div>
+          <span class="text-[11px] font-bold" data-i18n="expense">Expense</span>
+        </button>
+
+        <button onclick="app.openAddTransactionModal('income')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 ios-touch">
+          <div class="w-9 h-9 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-md shadow-emerald-500/30">
+            <i data-lucide="plus-circle" class="w-4.5 h-4.5"></i>
+          </div>
+          <span class="text-[11px] font-bold" data-i18n="income">Income</span>
+        </button>
+
+        <button onclick="app.openTransferModal()" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20 ios-touch">
+          <div class="w-9 h-9 rounded-2xl bg-blue-500 text-white flex items-center justify-center mb-1 shadow-md shadow-blue-500/30">
+            <i data-lucide="arrow-right-left" class="w-4.5 h-4.5"></i>
+          </div>
+          <span class="text-[11px] font-bold" data-i18n="transfer">Transfer</span>
+        </button>
+
+        <button onclick="app.switchTab('loans')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 ios-touch">
+          <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 text-white flex items-center justify-center mb-1 shadow-md shadow-amber-500/30">
+            <i data-lucide="landmark" class="w-4.5 h-4.5"></i>
+          </div>
+          <span class="text-[11px] font-bold" data-i18n="loansNav">Loans</span>
+        </button>
+      </div>
+
+      <!-- Alerts Section (Top Category Alert + Budget Warnings) -->
+      <div id="alertsContainer" class="space-y-3">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Account / Wallet Cards Horizon -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white" data-i18n="accountsWallets">Accounts & Wallets</h2>
+            <span class="text-xs text-emerald-500 font-bold" id="activeAccountsCount">4 Active</span>
+          </div>
+          <button onclick="app.openAddAccountModal()" class="px-2.5 py-1 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1 shadow-sm ios-touch">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="add">Add</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3" id="accountsGrid">
+          <!-- Dynamically populated accounts -->
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white" data-i18n="recentTransactions">Recent Transactions</h2>
+          <button onclick="app.switchTab('transactions')" class="text-xs text-emerald-500 font-bold" data-i18n="seeAll">See All</button>
+        </div>
+
+        <div id="recentTransactionsList" class="space-y-2.5">
+          <!-- Dynamically rendered -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VIEW 2: TRANSACTIONS & FILTER -->
+    <section id="viewTransactions" class="view-section space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold tracking-tight" data-i18n="txHistory">Transactions History</h2>
+        <button onclick="app.openAddTransactionModal('expense')" class="px-3.5 py-1.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-emerald-500/20 ios-touch">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add
+        </button>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="space-y-3">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+          <input type="text" id="searchInput" oninput="app.filterTransactions()" placeholder="Search by name, note, or date..." data-i18n-placeholder="searchPlaceholder" class="w-full pl-10 pr-4 py-2.5 rounded-2xl text-sm bg-slate-200/60 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div class="ios-segmented">
+          <button onclick="app.setFilterType('all')" class="ios-segmented-btn active" id="filterTabAll" data-i18n="all">All</button>
+          <button onclick="app.setFilterType('income')" class="ios-segmented-btn" id="filterTabIncome" data-i18n="income">Income</button>
+          <button onclick="app.setFilterType('expense')" class="ios-segmented-btn" id="filterTabExpense" data-i18n="expense">Expense</button>
+          <button onclick="app.setFilterType('transfer')" class="ios-segmented-btn" id="filterTabTransfer" data-i18n="transfer">Transfer</button>
+        </div>
+      </div>
+
+      <div id="fullTransactionsList" class="space-y-2.5">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- VIEW 3: ANALYTICS -->
+    <section id="viewAnalytics" class="view-section space-y-5 hidden">
+      <!-- Section Header with Month Selector -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold tracking-tight">Visual Insights</h2>
+        
+        <!-- iOS Month Selector Pill -->
+        <select id="analyticsMonthSelect" onchange="app.changeAnalyticsMonth(this.value)" class="px-3 py-1.5 rounded-2xl bg-emerald-500/15 text-emerald-500 text-xs font-extrabold border border-emerald-500/30 outline-none cursor-pointer">
+          <!-- Dynamically populated month options -->
+        </select>
+      </div>
+
+      <!-- Top Spending Highlight Card -->
+      <div id="topSpendingHighlightCard" class="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Category Pie Chart -->
+      <div class="ios-card p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Expense Distribution</h3>
+          <span class="text-[11px] font-bold text-slate-400" id="pieChartMonthLabel">Oct 2026</span>
+        </div>
+        <div class="relative h-56 flex justify-center">
+          <canvas id="categoryPieChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Monthly Trends Bar Chart -->
+      <div class="ios-card p-4 space-y-3">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Monthly Income vs Expense</h3>
+        <div class="relative h-60">
+          <canvas id="monthlyTrendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Category Breakdown List -->
+      <div class="ios-card p-4 space-y-3">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Category Breakdown</h3>
+        <div id="categoryBreakdownList" class="space-y-2">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: BUDGETS & SAVINGS GOALS -->
+    <section id="viewBudgets" class="view-section space-y-5 hidden">
+      <!-- Section Header -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold tracking-tight">Budgets & Goals</h2>
+        <div class="flex gap-2">
+          <button onclick="app.openSetBudgetModal()" class="px-3 py-1.5 rounded-2xl bg-rose-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-rose-500/20 ios-touch">
+            <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Set Limit
+          </button>
+          <button onclick="app.openAddGoalModal()" class="px-3 py-1.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-emerald-500/20 ios-touch">
+            <i data-lucide="target" class="w-3.5 h-3.5"></i> Add Goal
+          </button>
+        </div>
+      </div>
+
+      <!-- Monthly Financial Plan Card -->
+      <div class="ios-card p-4 space-y-3 bg-blue-500/5 dark:bg-blue-950/20 border border-blue-500/20 dark:border-blue-500/30">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-md">
+              <i data-lucide="calendar-check" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Monthly Financial Plan</h3>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Set expected income & expenses per month</p>
+            </div>
+          </div>
+          <select id="planMonthSelect" onchange="app.onPlanMonthChange(this.value)" class="text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-200/80 dark:bg-zinc-800 border-none outline-none cursor-pointer"></select>
+        </div>
+
+        <div id="monthlyPlanDisplay" class="space-y-2.5 pt-1">
+          <!-- Dynamically rendered plan summary -->
+        </div>
+
+        <button onclick="app.openMonthlyPlanModal()" class="w-full py-2.5 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/20 ios-touch">
+          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Set / Edit This Month's Plan
+        </button>
+      </div>
+
+      <!-- Monthly Category Budget Limits -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Category Limits</h3>
+          <select id="budgetMonthFilter" onchange="app.onBudgetMonthFilterChange(this.value)" class="text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-200/80 dark:bg-zinc-800 border-none outline-none cursor-pointer"></select>
+        </div>
+        <div id="budgetLimitsList" class="space-y-3">
+          <!-- Dynamically populated budgets -->
+        </div>
+      </div>
+
+      <!-- Savings Goals Tracker -->
+      <div class="space-y-3 pt-2">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Savings Goals Tracker</h3>
+        <div id="savingsGoalsList" class="space-y-3">
+          <!-- Dynamically populated goals -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- VIEW 5: REMINDERS & AUTOMATION -->
+    <section id="viewReminders" class="view-section space-y-5 hidden">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold tracking-tight">Automation & Bills</h2>
+        <button onclick="app.openAddReminderModal()" class="px-3 py-1.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-emerald-500/20 ios-touch">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add Bill
+        </button>
+      </div>
+
+      <!-- Recurring Transactions Auto Engine -->
+      <div class="ios-card p-4 space-y-3 bg-teal-500/5 dark:bg-teal-950/20 border border-teal-500/20 dark:border-teal-500/30">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-9 h-9 rounded-2xl bg-teal-500 text-white flex items-center justify-center shadow-md">
+            <i data-lucide="repeat" class="w-4.5 h-4.5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Recurring Automation</h3>
+            <p class="text-xs text-slate-600 dark:text-slate-400 font-semibold">Salary, Rent & Monthly Subscriptions</p>
+          </div>
+        </div>
+        <div id="recurringList" class="space-y-2 mt-3">
+          <!-- Dynamically rendered recurring entries -->
+        </div>
+      </div>
+
+      <!-- Bill Payment Reminders -->
+      <div class="space-y-3">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Upcoming Bill Payment Reminders</h3>
+        <div id="billRemindersList" class="space-y-3">
+          <!-- Dynamically populated bill reminders -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 7: LOAN TRACKER -->
+    <section id="viewLoans" class="view-section space-y-5 hidden">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold tracking-tight" data-i18n="loans">Loan Tracker</h2>
+        <button onclick="app.openAddLoanModal()" class="px-3.5 py-1.5 rounded-2xl bg-rose-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-rose-500/20 ios-touch">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add Loan
+        </button>
+      </div>
+
+      <!-- Total Loans Summary Card -->
+      <div class="relative overflow-hidden rounded-[28px] loan-danger-gradient text-white p-5 shadow-2xl">
+        <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-red-100 mb-1">TOTAL OUTSTANDING DEBT</p>
+        <p class="text-3xl font-black tracking-tight mb-4" id="totalLoanBalanceDisplay">Rs. 0.00</p>
+        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-white/20">
+          <div>
+            <p class="text-[10px] text-red-100 font-bold uppercase tracking-wider">Monthly Due</p>
+            <p class="text-sm font-extrabold" id="totalMonthlyInstallmentDisplay">Rs. 0.00</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-red-100 font-bold uppercase tracking-wider">Active Loans</p>
+            <p class="text-sm font-extrabold" id="activeLoanCountDisplay">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loans List -->
+      <div class="space-y-3">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Active Loans</h3>
+        <div id="loansList" class="space-y-3">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Paid Off Loans -->
+      <div class="space-y-3" id="paidLoansSection">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">✅ Fully Paid Loans</h3>
+        <div id="paidLoansList" class="space-y-3">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VIEW 6: REPORTS & SETTINGS -->
+    <section id="viewSettings" class="view-section space-y-5 hidden">
+      <h2 class="text-lg font-extrabold tracking-tight">Settings & Cloud</h2>
+
+      <!-- CATEGORY MANAGER -->
+      <div class="ios-card p-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+              <i data-lucide="tag" class="w-4.5 h-4.5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Manage Categories</h3>
+              <p class="text-xs text-slate-400">Add or remove custom categories</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ios-segmented">
+          <button onclick="app.switchCategoryTab('expense')" id="catTabExpense" class="ios-segmented-btn active">Expense</button>
+          <button onclick="app.switchCategoryTab('income')" id="catTabIncome" class="ios-segmented-btn">Income</button>
+        </div>
+
+        <form onsubmit="app.addCustomCategory(event)" class="flex gap-2">
+          <input type="text" id="newCategoryInput" required placeholder="New category name..." class="flex-1 px-3.5 py-2.5 rounded-2xl text-xs font-semibold bg-slate-200/60 dark:bg-zinc-800 border-none outline-none" />
+          <button type="submit" class="px-4 py-2.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold ios-touch shadow-md shadow-emerald-500/20 flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add
+          </button>
+        </form>
+
+        <div id="categoryTagsContainer" class="flex flex-wrap gap-2 pt-1">
+          <!-- Dynamically populated category tags -->
+        </div>
+      </div>
+
+      <!-- Google Drive Cloud Auto-Sync Card -->
+      <div class="ios-card p-4 space-y-3.5 bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/20 dark:border-emerald-500/30">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+              <i data-lucide="cloud-lightning" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Google Drive Auto-Sync</h3>
+              <p class="text-xs text-slate-600 dark:text-slate-300 font-semibold" id="googleDriveStatusText">Not Signed In</p>
+            </div>
+          </div>
+
+          <button id="driveLoginBtn" onclick="app.openGmailModal()" class="px-3.5 py-1.5 rounded-2xl bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 ios-touch">
+            Connect Gmail
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <button onclick="app.syncNowToDrive()" class="py-2.5 px-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 ios-touch">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="syncIconSpin"></i> Sync Now
+          </button>
+          <button onclick="app.pullFromDrive()" class="py-2.5 px-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-teal-600/20 ios-touch">
+            <i data-lucide="cloud-download" class="w-3.5 h-3.5"></i> Pull Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Reports Export -->
+      <div class="ios-card p-4 space-y-3">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Export Statements</h3>
+        
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <button onclick="app.exportCSV()" class="py-3 px-3 rounded-2xl bg-slate-200/60 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-xs flex items-center justify-center gap-2 ios-touch">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> Export CSV
+          </button>
+          <button onclick="app.exportPDF()" class="py-3 px-3 rounded-2xl bg-slate-200/60 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-xs flex items-center justify-center gap-2 ios-touch">
+            <i data-lucide="file-text" class="w-4 h-4 text-rose-500"></i> Export PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Data Backup & Safety -->
+      <div class="ios-card p-4 space-y-3">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Local Backup & Restore</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="app.exportBackupJSON()" class="py-3 px-3 rounded-2xl bg-slate-200/60 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-xs flex items-center justify-center gap-2 ios-touch">
+            <i data-lucide="download" class="w-4 h-4 text-blue-500"></i> Backup JSON
+          </button>
+          <label class="py-3 px-3 rounded-2xl bg-slate-200/60 dark:bg-zinc-800 text-slate-900 dark:text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer ios-touch">
+            <i data-lucide="upload" class="w-4 h-4 text-purple-500"></i> Restore JSON
+            <input type="file" accept=".json" onchange="app.importBackupJSON(event)" class="hidden" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Security Settings -->
+      <div class="ios-card p-4 space-y-3">
+        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Security Passcode</h3>
+        
+        <div class="flex items-center justify-between py-1">
+          <div>
+            <p class="text-sm font-bold">Passcode Lock</p>
+            <p class="text-xs text-slate-400">Require 4-digit PIN code on launch</p>
+          </div>
+          <button id="pinToggleBtn" onclick="app.togglePinSecurity()" class="px-3.5 py-1.5 rounded-2xl bg-slate-200 dark:bg-zinc-800 text-xs font-bold">
+            Disabled
+          </button>
+        </div>
+      </div>
+
+      <!-- Sanasa Bank Member Profile Card -->
+      <div class="ios-card p-4 space-y-3 bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/20 dark:border-emerald-500/30">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow">
+              🏛️
+            </div>
+            <div>
+              <h3 class="text-sm font-black text-slate-900 dark:text-white">ගලපිටියාගම සණස සාමාජික ගිණුම</h3>
+              <p class="text-xs text-slate-400" id="sanasaProfileStatus">සාමාජික තොරතුරු</p>
+            </div>
+          </div>
+          <button onclick="app.openSanasaMemberModal()" class="px-3 py-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 ios-touch">
+            Edit Profile
+          </button>
+        </div>
+        <div id="sanasaMemberCardDetails" class="text-xs space-y-1 pt-1 text-slate-600 dark:text-slate-300 font-semibold">
+          <!-- Dynamically populated member details -->
+        </div>
+      </div>
+
+      <!-- Developer & App Info Footer -->
+      <div class="text-center pt-6 pb-6 space-y-3">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20">
+          <i data-lucide="code" class="w-4 h-4 text-emerald-500"></i>
+          <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Developed by <strong class="text-emerald-600 dark:text-emerald-400">GSCS IT Department</strong> <span class="text-slate-500 dark:text-slate-400 font-medium">ft</span> <strong class="text-emerald-600 dark:text-emerald-400">Iraasoft Solution</strong></span>
+        </div>
+        
+        <p class="text-xs text-slate-600 dark:text-slate-400 font-semibold flex items-center justify-center gap-1.5">
+          <i data-lucide="phone-call" class="w-3.5 h-3.5 text-emerald-500"></i>
+          <span>Contact: <strong class="text-slate-700 dark:text-slate-300">GSCS Bank</strong> <a href="tel:0372260658" class="text-emerald-600 dark:text-emerald-400 font-extrabold hover:underline">037 226 0658</a></span>
+        </p>
+
+        <p class="text-[11px] text-slate-400 font-medium">GSCS Money Manager • v2.5</p>
+
+        <div class="pt-1">
+          <button onclick="app.resetAllData()" class="text-xs text-rose-500/80 hover:text-rose-500 font-semibold hover:underline transition-colors">Reset All App Data</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- iOS Bottom Floating Navigation Bar -->
+  <nav class="fixed bottom-0 inset-x-0 ios-glass-nav z-40 px-2.5 py-2">
+    <div class="max-w-md mx-auto grid grid-cols-6 gap-0.5 text-center">
+      <button onclick="app.switchTab('dashboard')" id="navTabDashboard" class="nav-btn flex flex-col items-center justify-center py-1 rounded-2xl text-emerald-500">
+        <i data-lucide="home" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[9px] font-bold" data-i18n="homeNav">Home</span>
+      </button>
+
+      <button onclick="app.switchTab('transactions')" id="navTabTransactions" class="nav-btn flex flex-col items-center justify-center py-1 rounded-2xl text-slate-400 hover:text-emerald-500">
+        <i data-lucide="list-filter" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[9px] font-bold" data-i18n="historyNav">History</span>
+      </button>
+
+      <button onclick="app.switchTab('analytics')" id="navTabAnalytics" class="nav-btn flex flex-col items-center justify-center py-1 rounded-2xl text-slate-400 hover:text-emerald-500">
+        <i data-lucide="pie-chart" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[9px] font-bold" data-i18n="analyticsNav">Analytics</span>
+      </button>
+
+      <button onclick="app.switchTab('budgets')" id="navTabBudgets" class="nav-btn flex flex-col items-center justify-center py-1 rounded-2xl text-slate-400 hover:text-emerald-500">
+        <i data-lucide="target" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[9px] font-bold" data-i18n="goalsNav">Goals</span>
+      </button>
+
+      <button onclick="app.switchTab('loans')" id="navTabLoans" class="nav-btn flex flex-col items-center justify-center py-1 rounded-2xl text-slate-400 hover:text-rose-500">
+        <i data-lucide="landmark" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[9px] font-bold" data-i18n="loansNav">Loans</span>
+      </button>
+
+      <button onclick="app.switchTab('settings')" id="navTabSettings" class="nav-btn flex flex-col items-center justify-center py-1 rounded-2xl text-slate-400 hover:text-emerald-500">
+        <i data-lucide="settings" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[9px] font-bold" data-i18n="settingsNav">Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MODAL: GMAIL CONNECT / GOOGLE SYNC -->
+  <div id="gmailConnectModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center">
+            <i data-lucide="cloud" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Google Drive Auto-Sync</h3>
+        </div>
+        <button onclick="app.closeModal('gmailConnectModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveGmailAccount(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Gmail Email Address</label>
+          <input type="email" id="gmailInput" required placeholder="example@gmail.com" class="w-full mt-1.5 px-4 py-3 rounded-2xl text-sm font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          <p class="text-[11px] text-slate-400 mt-1.5 font-medium">Connect your Gmail address to auto-sync transactions across all your devices via Google Drive.</p>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/30 ios-touch">
+          Connect Gmail & Enable Auto-Sync
+        </button>
+
+        <div id="alreadyConnectedBox" class="hidden pt-2 border-t border-slate-200 dark:border-zinc-800 text-center">
+          <button type="button" onclick="app.logoutGoogle()" class="text-xs text-rose-500 font-bold hover:underline">
+            Disconnect Gmail Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 1: ADD TRANSACTION SHEET -->
+  <div id="addTransactionModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet max-h-[90vh] overflow-y-auto">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white" id="transactionModalTitle">Add Transaction</h3>
+        <button onclick="app.closeModal('addTransactionModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveTransaction(event)" class="space-y-4">
+        <!-- iOS Segmented Control -->
+        <div class="ios-segmented">
+          <button type="button" id="typeExpenseBtn" onclick="app.setTxType('expense')" class="ios-segmented-btn active text-rose-500">Expense</button>
+          <button type="button" id="typeIncomeBtn" onclick="app.setTxType('income')" class="ios-segmented-btn">Income</button>
+        </div>
+
+        <!-- Amount Input -->
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Amount</label>
+          <div class="relative mt-1">
+            <span class="absolute left-4 top-3.5 text-slate-400 text-base font-bold" id="currencySymbolPrefix">Rs.</span>
+            <input type="number" step="0.01" id="txAmount" required placeholder="0.00" class="w-full pl-14 pr-4 py-3 rounded-2xl text-xl font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+        </div>
+
+        <!-- Category -->
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Category</label>
+          <select id="txCategory" required class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+            <!-- Dynamically populated based on custom categories -->
+          </select>
+        </div>
+
+        <!-- Account -->
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Account / Wallet</label>
+          <select id="txAccount" required class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+            <option value="cash">Cash (මුදල්)</option>
+            <option value="bank">Bank Account (බැංකුව)</option>
+            <option value="card">Credit Card (කාඩ්පත)</option>
+            <option value="wallet">Ez Cash / Genie / Wallet</option>
+          </select>
+        </div>
+
+        <!-- Date & Time Row -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Date</label>
+            <input type="date" id="txDate" required class="w-full mt-1 px-3.5 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Time</label>
+            <input type="time" id="txTime" required class="w-full mt-1 px-3.5 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Note (Optional)</label>
+          <input type="text" id="txNote" placeholder="e.g. Lunch with friends" class="w-full mt-1 px-4 py-3 rounded-2xl text-xs font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/30 ios-touch">
+          Save Transaction
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: TRANSFER SHEET -->
+  <div id="transferModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Account Transfer</h3>
+        <button onclick="app.closeModal('transferModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.executeTransfer(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">From Account</label>
+            <select id="transferFrom" required class="w-full mt-1 px-3.5 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+              <option value="bank">Bank Account</option>
+              <option value="cash">Cash</option>
+              <option value="card">Credit Card</option>
+              <option value="wallet">Mobile Wallet</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">To Account</label>
+            <select id="transferTo" required class="w-full mt-1 px-3.5 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+              <option value="cash">Cash</option>
+              <option value="bank">Bank Account</option>
+              <option value="card">Credit Card</option>
+              <option value="wallet">Mobile Wallet</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Transfer Amount</label>
+          <input type="number" step="0.01" id="transferAmount" required placeholder="0.00" class="w-full mt-1 px-4 py-3 rounded-2xl text-lg font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Note (Optional)</label>
+          <input type="text" id="transferNote" placeholder="ATM Cash Withdrawal" class="w-full mt-1 px-4 py-3 rounded-2xl text-xs font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-extrabold text-sm shadow-lg shadow-blue-500/30 ios-touch">
+          Confirm Transfer
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: SET BUDGET SHEET -->
+  <div id="setBudgetModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Set Category Budget Limit</h3>
+        <button onclick="app.closeModal('setBudgetModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveBudgetLimit(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Month <span class="text-rose-500">*</span></label>
+          <select id="budgetMonth" required class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+            <!-- Dynamically populated month options -->
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Category <span class="text-rose-500">*</span></label>
+          <select id="budgetCategory" required class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+            <!-- Dynamically populated based on expense categories -->
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Expense Limit Amount <span class="text-rose-500">*</span></label>
+          <input type="number" step="0.01" id="budgetLimitAmount" required placeholder="e.g. 25000" class="w-full mt-1 px-4 py-3 rounded-2xl text-lg font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-rose-500 text-white font-extrabold text-sm shadow-lg shadow-rose-500/30 ios-touch">
+          Save Budget Limit
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3B: MONTHLY FINANCIAL PLAN SHEET -->
+  <div id="monthlyPlanModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <div>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Monthly Financial Plan</h3>
+          <p class="text-[11px] text-slate-500 font-medium">Expected Income & Mandatory Expenses</p>
+        </div>
+        <button onclick="app.closeModal('monthlyPlanModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveMonthlyPlan(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Select Month <span class="text-rose-500">*</span></label>
+          <input type="month" id="planModalMonth" required class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none text-slate-800 dark:text-slate-100" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Expected Monthly Income (අනිවාර්යයෙන් ලැබෙන ආදායම) <span class="text-rose-500">*</span>
+          </label>
+          <input type="number" step="0.01" id="planExpectedIncome" required placeholder="e.g. 150000 (Salary/Business)" class="w-full mt-1 px-4 py-3 rounded-2xl text-lg font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none text-emerald-600 dark:text-emerald-400" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+            <i data-lucide="trending-down" class="w-3.5 h-3.5"></i> Expected Total Expenses (අනිවාර්ය මාසික වියදම) <span class="text-rose-500">*</span>
+          </label>
+          <input type="number" step="0.01" id="planExpectedExpense" required placeholder="e.g. 90000 (Rent/Bills/Food)" class="w-full mt-1 px-4 py-3 rounded-2xl text-lg font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none text-rose-600 dark:text-rose-400" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Notes / Plan Description (Optional)</label>
+          <input type="text" id="planNotes" placeholder="e.g. Save 60,000 for emergency fund" class="w-full mt-1 px-4 py-3 rounded-2xl text-xs font-medium bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/30 ios-touch">
+          Save Monthly Plan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: ADD SAVINGS GOAL SHEET -->
+  <div id="addGoalModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Add Savings Goal</h3>
+        <button onclick="app.closeModal('addGoalModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveSavingsGoal(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Goal Title</label>
+          <input type="text" id="goalTitle" required placeholder="New Phone / Travel Fund" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Target Amount</label>
+          <input type="number" step="0.01" id="goalTargetAmount" required placeholder="100000" class="w-full mt-1 px-4 py-3 rounded-2xl text-lg font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Initial Deposit (Optional)</label>
+          <input type="number" step="0.01" id="goalSavedAmount" placeholder="0" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/30 ios-touch">
+          Create Goal
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: ADD BILL REMINDER SHEET -->
+  <div id="addReminderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Add Bill Reminder</h3>
+        <button onclick="app.closeModal('addReminderModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveBillReminder(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Bill Title</label>
+          <input type="text" id="billTitle" required placeholder="Internet Fiber / Electricity Bill" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Bill Amount</label>
+            <input type="number" step="0.01" id="billAmount" required placeholder="3500" class="w-full mt-1 px-3.5 py-3 rounded-2xl text-sm font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Due Date</label>
+            <input type="date" id="billDueDate" required class="w-full mt-1 px-3.5 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-teal-500 text-white font-extrabold text-sm shadow-lg shadow-teal-500/30 ios-touch">
+          Save Bill Reminder
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 6: ADD LOAN SHEET -->
+  <div id="addLoanModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet max-h-[90vh] overflow-y-auto">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Add New Loan (ණය එකතු කිරීම)</h3>
+        <button onclick="app.closeModal('addLoanModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveLoan(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Loan Title (ණය නම)</label>
+          <input type="text" id="loanTitle" required placeholder="e.g. Car Lease / Personal Loan" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Lender / Bank (බැංකුව හෝ ආයතනය)</label>
+          <input type="text" id="loanLender" required placeholder="e.g. Galapitiyagama Sanasa Bank / Other" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Total Loan Amount</label>
+            <input type="number" step="0.01" id="loanTotalAmount" required placeholder="500000" class="w-full mt-1 px-3.5 py-3 rounded-2xl text-sm font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Monthly Installment (වාරිකය)</label>
+            <input type="number" step="0.01" id="loanMonthlyInstallment" required placeholder="25000" class="w-full mt-1 px-3.5 py-3 rounded-2xl text-sm font-extrabold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Already Paid (ගෙවා ඇති)</label>
+            <input type="number" step="0.01" id="loanPaidAmount" placeholder="0" class="w-full mt-1 px-3.5 py-3 rounded-2xl text-sm font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Due Day (මාසයේ දිනය)</label>
+            <input type="number" min="1" max="31" id="loanDueDay" required placeholder="e.g. 10" class="w-full mt-1 px-3.5 py-3 rounded-2xl text-sm font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Interest / Notes (විකල්ප)</label>
+          <input type="text" id="loanNotes" placeholder="e.g. 14% Interest / 3 Year Lease" class="w-full mt-1 px-4 py-3 rounded-2xl text-xs font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-rose-500 text-white font-extrabold text-sm shadow-lg shadow-rose-500/30 ios-touch">
+          Save Loan (ණය එකතු කරන්න)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 7: PAY INSTALLMENT SHEET -->
+  <div id="payInstallmentModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <div>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white" id="payModalLoanTitle">Pay Installment</h3>
+          <p class="text-xs text-slate-400" id="payModalLoanSubtitle">Remaining Debt: Rs. 0.00</p>
+        </div>
+        <button onclick="app.closeModal('payInstallmentModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.executeInstallmentPayment(event)" class="space-y-4">
+        <input type="hidden" id="payModalLoanId" />
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Payment Amount (වාරික මුදල)</label>
+          <input type="number" step="0.01" id="payInstallmentAmount" required class="w-full mt-1 px-4 py-3 rounded-2xl text-xl font-black bg-slate-100 dark:bg-zinc-800 border-none outline-none text-emerald-500" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Deduct From Account (මුදල් කපන ගිණුම)</label>
+          <select id="payInstallmentAccount" required class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+            <option value="bank">Bank Account (බැංකුව)</option>
+            <option value="cash">Cash (මුදල්)</option>
+            <option value="wallet">Mobile Wallet</option>
+            <option value="card">Credit Card</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Note (සටහන)</label>
+          <input type="text" id="payInstallmentNote" placeholder="Monthly Installment Paid" class="w-full mt-1 px-4 py-3 rounded-2xl text-xs font-semibold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/30 ios-touch">
+          Confirm Payment (වාරිකය ගෙවන්න)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 8: ADD BANK / WALLET ACCOUNT SHEET -->
+  <div id="addAccountModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Add Bank / Wallet (බැංකු / පසුම්බි)</h3>
+        <button onclick="app.closeModal('addAccountModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.saveAccount(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Account / Bank Name (නම)</label>
+          <input type="text" id="accName" required placeholder="e.g. Galapitiyagama Sanasa Bank / Other" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Type (වර්ගය)</label>
+            <select id="accType" required class="w-full mt-1 px-3.5 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+              <option value="bank">Bank (බැංකුව)</option>
+              <option value="wallet">Mobile Wallet</option>
+              <option value="cash">Cash (මුදල්)</option>
+              <option value="card">Card (කාඩ්පත)</option>
+              <option value="savings">Savings / Deposit</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Color Theme</label>
+            <select id="accColor" class="w-full mt-1 px-3.5 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none">
+              <option value="blue">Blue (නිල්)</option>
+              <option value="emerald">Emerald (කොළ)</option>
+              <option value="purple">Purple (දම්)</option>
+              <option value="amber">Amber (තැඹිලි)</option>
+              <option value="teal">Teal (ටීල්)</option>
+              <option value="rose">Rose (රතු)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400">Starting Balance (වත්මන් ශේෂය)</label>
+          <input type="number" step="0.01" id="accInitialBalance" required placeholder="50000" class="w-full mt-1 px-4 py-3 rounded-2xl text-lg font-black bg-slate-100 dark:bg-zinc-800 border-none outline-none text-emerald-500" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/30 ios-touch">
+          Save Bank / Wallet (සුරකින්න)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 9: GALAPITIYAGAMA SANASA BANK MEMBER ONBOARDING SHEET -->
+  <div id="sanasaMemberModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end justify-center hidden">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-[32px] p-6 space-y-4 animate-ios-sheet">
+      <div class="ios-grab-handle"></div>
+      
+      <div class="text-center space-y-2 pb-2 border-b border-slate-100 dark:border-zinc-800">
+        <div class="w-full flex items-center justify-center pt-1">
+          <div class="p-2.5 rounded-2xl bg-white border border-slate-200 shadow-sm inline-flex items-center justify-center">
+            <img src="./sanasa-logo.png" alt="Galapitiyagama Sanasa Logo" class="h-12 max-w-[210px] object-contain" />
+          </div>
+        </div>
+        <h3 class="text-base font-black text-slate-900 dark:text-white">ගලපිටියාගම සණස බැංකුව</h3>
+        <p class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 leading-snug px-2">
+          සකසුරුවම් මාසය වෙනුවෙන් සාමාජික/ගනුදෙනුකාර ඔබවෙත සකසුරුවම මඟින් ආර්ථිකය ජයගන්න ගලපිටියාගම සණස බැංකුවෙන් තිළිණයකි!
+        </p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">ඔබගේ මූල්‍ය කටයුතු පහසුවෙන් කළමනාකරණය කරගැනීමට කරුණාකර ඔබගේ විස්තර ඇතුළත් කරන්න.</p>
+      </div>
+
+      <form onsubmit="app.saveSanasaMemberProfile(event)" class="space-y-3.5">
+        <div>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">ඔබේ නම (Your Name) <span class="text-rose-500">*</span></label>
+          <input type="text" id="sanasaMemberName" required placeholder="ඔබේ නම ඇතුළත් කරන්න..." class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none text-slate-900 dark:text-white" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">දුරකථන අංකය (Phone Number) <span class="text-rose-500">*</span></label>
+          <input type="tel" id="sanasaMemberPhone" required placeholder="07X XXXXXXX" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none text-slate-900 dark:text-white" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">සණස බැංකු ගිණුම් අංකය (Account Number)</label>
+          <input type="text" id="sanasaMemberAccount" placeholder="01010XXXX / 01020XXXX / 01040XXXX" class="w-full mt-1 px-4 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-zinc-800 border-none outline-none text-slate-900 dark:text-white font-mono" />
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg shadow-emerald-600/30 ios-touch">
+          ලියාපදිංචි වී ආරම්භ කරන්න (Get Started)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 10: BANK PROMOTIONAL ANNOUNCEMENT POPUP -->
+  <div id="bankPromoModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-6 space-y-4 shadow-2xl border border-emerald-500/30 text-center animate-ios-sheet">
+      <div class="w-14 h-14 mx-auto rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl shadow-inner">
+        📢
+      </div>
+      
+      <div class="space-y-1">
+        <span id="promoBadge" class="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Special Offer</span>
+        <h3 id="promoTitle" class="text-base font-black text-slate-900 dark:text-white pt-1">විශේෂ බැංකු දැනුම්දීම</h3>
+      </div>
+
+      <p id="promoMessage" class="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+        ගලපිටියාගම සණස බැංකුවේ නවතම සේවා සහ ප්‍රතිලාභ පිළිබඳ දැනුවත් වන්න.
+      </p>
+
+      <div class="pt-2 space-y-2">
+        <a id="promoActionBtn" href="tel:0752895951" class="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 ios-touch">
+          <i data-lucide="phone-call" class="w-4 h-4"></i> <span id="promoActionText">ශාඛාව අමතන්න</span>
+        </a>
+        <button onclick="app.closeModal('bankPromoModal')" class="w-full py-2.5 rounded-2xl text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          පසුව සිහිපත් කරන්න (Close)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Bundle -->
+  <script src="app.js"></script>
+</body>
+</html>

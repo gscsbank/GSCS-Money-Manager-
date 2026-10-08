@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ගලපිටියාගම සණස බැංකුව - සාමාජික කළමනාකරණ පද්ධතිය (Admin Portal)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-white font-black text-xl shadow">
+          🏛️
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight">ගලපිටියාගම සණස බැංකුව</h1>
+          <p class="text-xs text-emerald-100 font-semibold">Galapitiyagama Sanasa Bank - Member Analytics & Campaign Dashboard</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <input type="text" id="scriptUrlInput" value="https://script.google.com/macros/s/AKfycbwaO8oTIjWMpT8D3LopSLWsr8xXop55qmszVeDuscJWvJP_DPJvfaf0DfWty9dwjY7B/exec" placeholder="Google Apps Script Web App URL ඇතුළත් කරන්න..." class="px-4 py-2 rounded-xl text-xs text-slate-800 w-full md:w-80 outline-none border border-emerald-500 shadow-inner" />
+        <button onclick="loadAdminData()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-950 text-white text-xs font-bold whitespace-nowrap shadow flex items-center gap-1.5 transition">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync Data
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
+    <!-- Overview Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">ලියාපදිංචි සාමාජිකයින්</p>
+          <h3 class="text-2xl font-black text-slate-900 mt-1" id="statMembersCount">0</h3>
+          <span class="text-[11px] text-emerald-600 font-semibold mt-1 inline-block">Active App Users</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <i data-lucide="users" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">මුළු පාරිභෝගික ශේෂය</p>
+          <h3 class="text-2xl font-black text-blue-600 mt-1" id="statTotalBalance">Rs. 0</h3>
+          <span class="text-[11px] text-slate-500 font-semibold mt-1 inline-block">FD Opportunities Target</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <i data-lucide="wallet" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">මුළු මාසික ආදායම</p>
+          <h3 class="text-2xl font-black text-emerald-600 mt-1" id="statMonthlyIncome">Rs. 0</h3>
+          <span class="text-[11px] text-slate-500 font-semibold mt-1 inline-block">Total Community Income</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <i data-lucide="trending-up" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">මුළු ණය මුදල</p>
+          <h3 class="text-2xl font-black text-rose-600 mt-1" id="statTotalLoans">Rs. 0</h3>
+          <span class="text-[11px] text-rose-500 font-semibold mt-1 inline-block">Sanasa Loan Target</span>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROMOTIONS & POPUP NOTIFICATION MANAGER -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+            📢
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900">පාරිභෝගික දැන්වීම් සහ Popups කළමනාකරණය (App Campaign Manager)</h2>
+            <p class="text-xs text-slate-400 font-medium">මෙහි පළකරන දැන්වීම් සාමාජිකයන්ගේ App එක Open වන විට Popup ලෙස දිස්වේ.</p>
+          </div>
+        </div>
+        <span id="currentPromoStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 self-start md:self-auto">
+          Checking Active Promo...
+        </span>
+      </div>
+
+      <form onsubmit="broadcastPromoCampaign(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">දැන්වීමේ මාතෘකාව (Title) *</label>
+          <input type="text" id="adminPromoTitle" required placeholder="උදා: සණස විශේෂ ස්ථාවර තැන්පතු පොලී අනුපාත!" class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-100 border-none outline-none font-semibold text-slate-800" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Badge / Tag *</label>
+          <input type="text" id="adminPromoBadge" required placeholder="උදා: Special FD Offer / New Loan" class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-100 border-none outline-none font-semibold text-slate-800" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Button Text *</label>
+          <input type="text" id="adminPromoButtonText" required placeholder="උදා: ශාඛාව අමතන්න" class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-100 border-none outline-none font-semibold text-slate-800" />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">දුරකථන අංකය / Link *</label>
+          <input type="text" id="adminPromoTarget" required placeholder="උදා: 0752895951" class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-100 border-none outline-none font-semibold text-slate-800" />
+        </div>
+
+        <div class="md:col-span-2 lg:col-span-3">
+          <label class="text-xs font-bold text-slate-700 block mb-1">දැන්වීමේ විස්තරය (Message Description) *</label>
+          <input type="text" id="adminPromoMessage" required placeholder="උදා: ඔබේ අතිරික්ත මුදල් සඳහා ඉහළම ආරක්ෂාව සහ වැඩිම පොලියක් ලබාගන්න අදම ගලපිටියාගම සණස බැංකු ශාඛාව අමතන්න..." class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-100 border-none outline-none font-semibold text-slate-800" />
+        </div>
+
+        <div class="flex items-end">
+          <button type="submit" id="broadcastBtn" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition">
+            <i data-lucide="send" class="w-4 h-4"></i> Send Popup to Users
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2 w-full md:w-96">
+        <div class="relative w-full">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+          <input type="text" id="memberSearch" oninput="filterMembersTable()" placeholder="නම, දුරකථන අංකය හෝ ගිණුම් අංකය සොයන්න..." class="w-full pl-10 pr-4 py-2 rounded-xl text-xs bg-slate-100 border-none outline-none font-medium" />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-slate-500">පෙරහන් (Filter):</span>
+        <button onclick="setFilter('all')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 text-white filter-btn" data-f="all">සියල්ල</button>
+        <button onclick="setFilter('high-balance')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 filter-btn" data-f="high-balance">ඉහළ තැන්පතු (FD සුදුසු)</button>
+        <button onclick="setFilter('has-loans')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 filter-btn" data-f="has-loans">ණය ඇති අය (ණය යෝජනා)</button>
+      </div>
+    </div>
+
+    <!-- Members Analytics Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="text-sm font-extrabold text-slate-800">සාමාජික මූල්‍ය තොරතුරු නාමාවලිය (Live Member List)</h2>
+        <span class="text-xs text-slate-400" id="tableCountBadge">පෙන්වන්නේ සාමාජිකයින් 0 කි</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+              <th class="p-3.5">සාමාජිකයාගේ නම</th>
+              <th class="p-3.5">දුරකථන අංකය</th>
+              <th class="p-3.5">සණස ගිණුම් අංකය</th>
+              <th class="p-3.5">මුළු ශේෂය (Balance)</th>
+              <th class="p-3.5">මාසික ආදායම</th>
+              <th class="p-3.5">මාසික වියදම</th>
+              <th class="p-3.5">ණය මුදල</th>
+              <th class="p-3.5">බැංකු ක්‍රියාමාර්ග (Action)</th>
+              <th class="p-3.5">අවසන් Sync දිනය</th>
+            </tr>
+          </thead>
+          <tbody id="membersTableBody">
+            <tr>
+              <td colspan="9" class="p-8 text-center text-slate-400 font-semibold">
+                කරුණාකර ඉහළ ඇති box එකට Google Apps Script Web App URL එක ඇතුළත් කර "Sync Data" ඔබන්න.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let rawMembers = [];
+    let currentFilter = 'all';
+
+    const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaO8oTIjWMpT8D3LopSLWsr8xXop55qmszVeDuscJWvJP_DPJvfaf0DfWty9dwjY7B/exec';
+
+    window.onload = function() {
+      const savedUrl = localStorage.getItem('sanasa_script_url') || DEFAULT_SCRIPT_URL;
+      document.getElementById('scriptUrlInput').value = savedUrl;
+      loadAdminData();
+      lucide.createIcons();
+    };
+
+    function formatLKR(val) {
+      return 'Rs. ' + Number(val || 0).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    async function loadAdminData() {
+      const url = document.getElementById('scriptUrlInput').value.trim();
+      if (!url) {
+        alert('කරුණාකර Google Apps Script Web App URL එක ඇතුළත් කරන්න!');
+        return;
+      }
+      localStorage.setItem('sanasa_script_url', url);
+
+      const tbody = document.getElementById('membersTableBody');
+      tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-emerald-600 font-bold">දත්ත ලබාගනිමින් පවතී (Loading Data from Google Sheets)...</td></tr>`;
+
+      try {
+        const fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=getAdminData';
+        const res = await fetch(fetchUrl);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          rawMembers = data.members || [];
+          updateStats();
+          renderMembersTable();
+
+          if (data.currentPromo) {
+            const p = data.currentPromo;
+            document.getElementById('currentPromoStatusBadge').className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700';
+            document.getElementById('currentPromoStatusBadge').textContent = `Active Popup: ${p.title}`;
+            
+            // Prefill form with current active promo
+            document.getElementById('adminPromoTitle').value = p.title || '';
+            document.getElementById('adminPromoBadge').value = p.badge || '';
+            document.getElementById('adminPromoButtonText').value = p.buttonText || '';
+            document.getElementById('adminPromoTarget').value = p.actionTarget || '';
+            document.getElementById('adminPromoMessage').value = p.message || '';
+          } else {
+            document.getElementById('currentPromoStatusBadge').className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+            document.getElementById('currentPromoStatusBadge').textContent = 'No Active Promo';
+          }
+        } else {
+          tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-rose-500 font-bold">Error: ${data.message}</td></tr>`;
+        }
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-rose-500 font-bold">Failed to load data. Please ensure Google Apps Script Web App is deployed with "Anyone" access.<br><span class="text-xs text-slate-400 mt-2 block">${err}</span></td></tr>`;
+      }
+    }
+
+    async function broadcastPromoCampaign(event) {
+      event.preventDefault();
+      const url = document.getElementById('scriptUrlInput').value.trim();
+      if (!url) return alert('Google Apps Script URL එක අවශ්‍යයි!');
+
+      const title = document.getElementById('adminPromoTitle').value.trim();
+      const badge = document.getElementById('adminPromoBadge').value.trim();
+      const buttonText = document.getElementById('adminPromoButtonText').value.trim();
+      const actionTarget = document.getElementById('adminPromoTarget').value.trim();
+      const message = document.getElementById('adminPromoMessage').value.trim();
+
+      const btn = document.getElementById('broadcastBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Sending...`;
+
+    try {
+        // Use GET request with URL params — no-cors POST can't send JSON to Apps Script
+        const params = new URLSearchParams({
+          action: 'savePromo',
+          title: title,
+          badge: badge,
+          buttonText: buttonText,
+          actionTarget: actionTarget,
+          message: message
+        });
+        const fetchUrl = url + (url.includes('?') ? '&' : '?') + params.toString();
+        const res = await fetch(fetchUrl);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          alert(`සාර්ථකයි! නව දැන්වීම් Popup එක App එක භාවිතා කරන සියලුම සාමාජිකයන් වෙත සක්‍රීය කරන ලදී.\n\nමාතෘකාව: ${title}`);
+          document.getElementById('currentPromoStatusBadge').className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700';
+          document.getElementById('currentPromoStatusBadge').textContent = `Active Popup: ${title}`;
+        } else {
+          alert('ගැටලුවක් ඇතිවිය: ' + (data.message || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('දැන්වීම පළකිරීමේදී ගැටලුවක් මතු විය: ' + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Send Popup to Users`;
+        lucide.createIcons();
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('statMembersCount').textContent = rawMembers.length;
+
+      const totalBal = rawMembers.reduce((sum, m) => sum + Number(m.totalBalance || 0), 0);
+      const totalInc = rawMembers.reduce((sum, m) => sum + Number(m.monthlyIncome || 0), 0);
+      const totalLoans = rawMembers.reduce((sum, m) => sum + Number(m.totalLoans || 0), 0);
+
+      document.getElementById('statTotalBalance').textContent = formatLKR(totalBal);
+      document.getElementById('statMonthlyIncome').textContent = formatLKR(totalInc);
+      document.getElementById('statTotalLoans').textContent = formatLKR(totalLoans);
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        if (b.getAttribute('data-f') === f) {
+          b.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 text-white filter-btn';
+        } else {
+          b.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 filter-btn';
+        }
+      });
+      renderMembersTable();
+    }
+
+    function filterMembersTable() {
+      renderMembersTable();
+    }
+
+    function renderMembersTable() {
+      const tbody = document.getElementById('membersTableBody');
+      const search = document.getElementById('memberSearch').value.toLowerCase().trim();
+
+      let list = [...rawMembers];
+
+      if (currentFilter === 'high-balance') {
+        list = list.filter(m => Number(m.totalBalance || 0) >= 50000);
+      } else if (currentFilter === 'has-loans') {
+        list = list.filter(m => Number(m.totalLoans || 0) > 0);
+      }
+
+      if (search) {
+        list = list.filter(m => 
+          (m.name || '').toLowerCase().includes(search) ||
+          (m.phone || '').toLowerCase().includes(search) ||
+          (m.accountNo || '').toLowerCase().includes(search)
+        );
+      }
+
+      document.getElementById('tableCountBadge').textContent = `පෙන්වන්නේ සාමාජිකයින් ${list.length} කි`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400 font-semibold">කිසිදු සාමාජික දත්තයක් හමුනොවිණි.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(m => {
+        const bal = Number(m.totalBalance || 0);
+        const loans = Number(m.totalLoans || 0);
+
+        let actionBadge = '';
+        if (bal >= 100000) {
+          actionBadge = `<span class="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px]">⭐ FD Promote</span>`;
+        } else if (loans > 0) {
+          actionBadge = `<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-bold text-[10px]">⚡ Loan Offer</span>`;
+        } else {
+          actionBadge = `<span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 font-bold text-[10px]">Normal</span>`;
+        }
+
+        return `
+          <tr class="border-b border-slate-100 hover:bg-slate-50/80 transition">
+            <td class="p-3.5 font-bold text-slate-800">${m.name || '-'}</td>
+            <td class="p-3.5 font-medium"><a href="tel:${m.phone}" class="text-emerald-700 hover:underline font-semibold">${m.phone || '-'}</a></td>
+            <td class="p-3.5 font-mono font-semibold text-slate-600">${m.accountNo || '-'}</td>
+            <td class="p-3.5 font-bold ${bal >= 0 ? 'text-slate-800' : 'text-rose-600'}">${formatLKR(bal)}</td>
+            <td class="p-3.5 font-semibold text-emerald-600">${formatLKR(m.monthlyIncome)}</td>
+            <td class="p-3.5 font-semibold text-rose-600">${formatLKR(m.monthlyExpense)}</td>
+            <td class="p-3.5 font-bold ${loans > 0 ? 'text-rose-600' : 'text-slate-400'}">${formatLKR(loans)}</td>
+            <td class="p-3.5">${actionBadge}</td>
+            <td class="p-3.5 text-slate-400 text-[11px]">${m.lastSynced || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
